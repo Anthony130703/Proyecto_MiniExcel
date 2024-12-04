@@ -236,7 +236,7 @@ void Spreadsheet::display() const {
                 if (!content.empty() && content[0] == '=') {
                     // Asegurar que los números se impriman con decimales
                     std::cout << std::setw(10) << std::fixed << std::setprecision(2) 
-                              << evaluateExpression(content.substr(1)) << " | ";
+                          << evaluateExpression(content.substr(1)) << " | ";
                 } else {
                     std::cout << std::setw(10) << content << " | ";
                 }
