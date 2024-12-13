@@ -1,12 +1,7 @@
 #include "Spreadsheet.h"
+#include "utils.h"
 #include <iostream>
-#include <iomanip>
-#include <sstream>
-#include <stack>
-#include <stdexcept>
-#include <cctype>
 #include <cmath>
-#include <algorithm>
 
 // Constructor
 Spreadsheet::Spreadsheet(int rows, int cols)
@@ -37,11 +32,7 @@ double Spreadsheet::getCellValue(int row, int col) const {
     }
 
     // Si no es fórmula, intenta convertirla a número
-    try {
-        return std::stod(content);
-    } catch (...) {
-        return 0.0; // Retorna 0 si no es un número válido
-    }
+    return utils::stringToDouble(content);
 }
 
 // Genera etiquetas para las filas (A, B, C, ..., Z, AA, AB, ...)
@@ -59,7 +50,7 @@ bool Spreadsheet::parseCellReference(const std::string& ref, int& row, int& col)
     int pos = 0;
 
     // Leer letras para la fila
-    while (pos < ref.size() && std::isalpha(ref[pos])) {
+    while (pos < ref.size() && utils::isAlpha(ref[pos])) {
         pos++;
     }
 
@@ -69,23 +60,23 @@ bool Spreadsheet::parseCellReference(const std::string& ref, int& row, int& col)
     // Convertir fila (letras) a índice
     row = 0;
     for (char c : rowLabel) {
-        row = row * 26 + (std::toupper(c) - 'A' + 1);
+        row = row * 26 + ((utils::toLower(c) - 'a') + 1);
     }
     row -= 1; // Ajustar a índice 0
 
     // Convertir columna (números) a índice
-    try {
-        col = std::stoi(colLabel) - 1; // Ajustar a índice 0
-    } catch (...) {
+    if (!utils::stringToInt(colLabel, col)) {
         return false;
     }
+    col -= 1; // Ajustar a índice 0
 
     return row >= 0 && col >= 0;
 }
 
 // Convierte una expresión infija a postfija
 std::string Spreadsheet::infixToPostfix(const std::string& expression) const {
-    std::stack<char> ops;
+    char ops[100];
+    int top = -1;
     std::string output;
 
     auto precedence = [](char op) {
@@ -97,42 +88,39 @@ std::string Spreadsheet::infixToPostfix(const std::string& expression) const {
     for (size_t i = 0; i < expression.size(); ++i) {
         char token = expression[i];
 
-        if (std::isdigit(token) || token == '.') {
-            while (i < expression.size() && (std::isdigit(expression[i]) || expression[i] == '.')) {
+        if (utils::isDigit(token) || token == '.') {
+            while (i < expression.size() && (utils::isDigit(expression[i]) || expression[i] == '.')) {
                 output += expression[i++];
             }
             output += " ";
             --i;
-        } else if (std::isalpha(token)) {
+        } else if (utils::isAlpha(token)) {
             std::string cellRef;
-            while (i < expression.size() && (std::isalpha(expression[i]) || std::isdigit(expression[i]))) {
+            while (i < expression.size() && (utils::isAlpha(expression[i]) || utils::isDigit(expression[i]))) {
                 cellRef += expression[i++];
             }
             output += cellRef + " ";
             --i;
         } else if (token == '(') {
-            ops.push(token);
+            ops[++top] = token;
         } else if (token == ')') {
-            while (!ops.empty() && ops.top() != '(') {
-                output += ops.top();
+            while (top >= 0 && ops[top] != '(') {
+                output += ops[top--];
                 output += " ";
-                ops.pop();
             }
-            ops.pop();
+            --top;
         } else {
-            while (!ops.empty() && precedence(ops.top()) >= precedence(token)) {
-                output += ops.top();
+            while (top >= 0 && precedence(ops[top]) >= precedence(token)) {
+                output += ops[top--];
                 output += " ";
-                ops.pop();
             }
-            ops.push(token);
+            ops[++top] = token;
         }
     }
 
-    while (!ops.empty()) {
-        output += ops.top();
+    while (top >= 0) {
+        output += ops[top--];
         output += " ";
-        ops.pop();
     }
 
     return output;
@@ -140,34 +128,46 @@ std::string Spreadsheet::infixToPostfix(const std::string& expression) const {
 
 // Evalúa una expresión postfija
 double Spreadsheet::evaluatePostfix(const std::string& postfix) const {
-    std::istringstream iss(postfix);
-    std::stack<double> values;
+    double values[100];
+    int top = -1;
     std::string token;
 
-    while (iss >> token) {
-        if (std::isdigit(token[0]) || (token[0] == '-' && token.size() > 1)) {
-            values.push(std::stod(token));
-        } else if (std::isalpha(token[0])) {
+    for (size_t i = 0; i < postfix.size(); ++i) {
+        if (postfix[i] == ' ') continue;
+
+        if (utils::isDigit(postfix[i]) || (postfix[i] == '-' && i + 1 < postfix.size() && utils::isDigit(postfix[i + 1]))) {
+            size_t start = i;
+            while (i < postfix.size() && (utils::isDigit(postfix[i]) || postfix[i] == '.')) {
+                ++i;
+            }
+            token = postfix.substr(start, i - start);
+            values[++top] = utils::stringToDouble(token);
+            --i;
+        } else if (utils::isAlpha(postfix[i])) {
+            token.clear();
+            while (i < postfix.size() && (utils::isAlpha(postfix[i]) || utils::isDigit(postfix[i]))) {
+                token += postfix[i++];
+            }
             int row, col;
             if (parseCellReference(token, row, col)) {
-                values.push(getCellValue(row, col));
+                values[++top] = getCellValue(row, col);
             } else {
-                throw std::runtime_error("Invalid cell reference: " + token);
+                return 0.0; // Referencia inválida
             }
+            --i;
         } else {
-            double b = values.top(); values.pop();
-            double a = values.top(); values.pop();
-            switch (token[0]) {
-                case '+': values.push(a + b); break;
-                case '-': values.push(a - b); break;
-                case '*': values.push(a * b); break;
-                case '/': values.push(b != 0 ? a / b : throw std::runtime_error("Division by zero")); break;
-                default: throw std::runtime_error("Unknown operator: " + token);
+            double b = values[top--];
+            double a = values[top--];
+            switch (postfix[i]) {
+                case '+': values[++top] = a + b; break;
+                case '-': values[++top] = a - b; break;
+                case '*': values[++top] = a * b; break;
+                case '/': values[++top] = b != 0 ? a / b : 0.0; break;
             }
         }
     }
 
-    return values.top();
+    return values[top];
 }
 
 // Método principal para evaluar expresiones
@@ -200,10 +200,10 @@ double Spreadsheet::evaluateFunction(const std::string& function, const std::str
             }
             return sum;
         } else {
-            throw std::runtime_error("Invalid range in SUM: " + range);
+            return 0.0;
         }
     }
-    throw std::runtime_error("Unsupported function: " + function);
+    return 0.0;
 }
 
 // Valida si una celda está dentro del rango de la hoja de cálculo
@@ -217,31 +217,30 @@ void Spreadsheet::display() const {
     int rows = grid.size();
 
     // Mostrar encabezados de columnas
-    std::cout << std::setw(6) << " "; // Espacio para etiquetas de filas
+    std::cout << "      ";
     for (int col = 1; col <= cols; ++col) {
-        std::cout << std::setw(10) << col << " | ";
+        std::cout << "    " << col << " | ";
     }
     std::cout << "\n";
 
     // Mostrar separador
-    std::cout << std::string(6 + (cols * 13), '-') << "\n";
+    for (int i = 0; i < 6 + (cols * 8); ++i) std::cout << "-";
+    std::cout << "\n";
 
     // Mostrar filas con etiquetas
     for (int row = 0; row < rows; ++row) {
-        std::cout << std::setw(6) << generateRowLabel(row) << " | ";
+        std::cout << generateRowLabel(row) << " | ";
         for (int col = 0; col < cols; ++col) {
             try {
                 // Evaluar contenido si es fórmula
                 std::string content = grid[row][col].getContent();
                 if (!content.empty() && content[0] == '=') {
-                    // Asegurar que los números se impriman con decimales
-                    std::cout << std::setw(10) << std::fixed << std::setprecision(2) 
-                          << evaluateExpression(content.substr(1)) << " | ";
+                    std::cout << evaluateExpression(content.substr(1)) << " | ";
                 } else {
-                    std::cout << std::setw(10) << content << " | ";
+                    std::cout << content << " | ";
                 }
-            } catch (const std::exception& e) {
-                std::cout << std::setw(10) << "ERR" << " | ";
+            } catch (...) {
+                std::cout << "ERR | ";
             }
         }
         std::cout << "\n";
