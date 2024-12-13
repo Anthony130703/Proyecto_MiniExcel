@@ -2,6 +2,7 @@
 #include "utils.h"
 #include <iostream>
 #include <cmath>
+#include <iomanip>
 
 // Constructor
 Spreadsheet::Spreadsheet(int rows, int cols)
@@ -199,50 +200,47 @@ double Spreadsheet::evaluateFunction(const std::string& function, const std::str
                 }
             }
             return sum;
-        } else {
-            return 0.0;
         }
     }
-    return 0.0;
+    return 0.0; // Si no reconoce la función, retorna 0.0
 }
 
-// Valida si una celda está dentro del rango de la hoja de cálculo
-bool Spreadsheet::isCellInRange(int row, int col) const {
-    return row >= 0 && row < grid.size() && col >= 0 && col < grid[0].size();
-}
-
-// Mostrar hoja de cálculo con etiquetas
+// Mostrar la hoja de cálculo
 void Spreadsheet::display() const {
     int cols = grid[0].size();
     int rows = grid.size();
 
     // Mostrar encabezados de columnas
-    std::cout << "      ";
+    std::cout << std::setw(6) << " "; // Espacio para etiquetas de filas
     for (int col = 1; col <= cols; ++col) {
-        std::cout << "    " << col << " | ";
+        std::cout << std::setw(12) << col << " | ";  // Ajuste de espacio para mejor alineación
     }
     std::cout << "\n";
 
     // Mostrar separador
-    for (int i = 0; i < 6 + (cols * 8); ++i) std::cout << "-";
-    std::cout << "\n";
+    std::cout << std::string(6 + (cols * 14), '-') << "\n";  // Ajustar longitud del separador
 
     // Mostrar filas con etiquetas
     for (int row = 0; row < rows; ++row) {
-        std::cout << generateRowLabel(row) << " | ";
+        std::cout << std::setw(6) << generateRowLabel(row) << " | ";
         for (int col = 0; col < cols; ++col) {
             try {
                 // Evaluar contenido si es fórmula
                 std::string content = grid[row][col].getContent();
                 if (!content.empty() && content[0] == '=') {
-                    std::cout << evaluateExpression(content.substr(1)) << " | ";
+                    // Asegurar que los números se impriman con decimales
+                    std::cout << std::setw(12) << std::fixed << std::setprecision(2) 
+                          << evaluateExpression(content.substr(1)) << " | ";
                 } else {
-                    std::cout << content << " | ";
+                    std::cout << std::setw(12) << content << " | ";  // Alineación de celdas
                 }
-            } catch (...) {
-                std::cout << "ERR | ";
+            } catch (const std::exception& e) {
+                std::cout << std::setw(12) << "ERR" << " | ";  // Manejo de errores
             }
         }
         std::cout << "\n";
+
+        // Imprimir separador después de cada fila
+        std::cout << std::string(6 + (cols * 14), '-') << "\n";  // Ajustar longitud del separador
     }
 }

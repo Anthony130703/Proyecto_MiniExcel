@@ -1,48 +1,35 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <string>
-#include <cctype>
-#include <cstdlib>
-
 namespace utils {
-
-// Convierte una cadena a un número double
-inline double stringToDouble(const std::string& str) {
-    char* end;
-    double value = std::strtod(str.c_str(), &end);
-    if (*end != '\0') {
-        throw std::invalid_argument("Invalid double conversion");
+    inline bool isDigit(char c) {
+        return (c >= '0' && c <= '9');
     }
-    return value;
-}
 
-// Convierte una cadena a un número entero
-inline bool stringToInt(const std::string& str, int& result) {
-    char* end;
-    long value = std::strtol(str.c_str(), &end, 10);
-    if (*end == '\0') {
-        result = static_cast<int>(value);
-        return true;
+    inline bool isAlpha(char c) {
+        return ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'));
     }
-    return false;
-}
 
-// Verifica si un carácter es un dígito
-inline bool isDigit(char c) {
-    return std::isdigit(static_cast<unsigned char>(c));
-}
+    inline bool stringToInt(const std::string& str, int& value) {
+        try {
+            value = std::stoi(str);
+            return true;
+        } catch (...) {
+            return false;
+        }
+    }
 
-// Verifica si un carácter es una letra
-inline bool isAlpha(char c) {
-    return std::isalpha(static_cast<unsigned char>(c));
-}
+    inline double stringToDouble(const std::string& str) {
+        try {
+            return std::stod(str);
+        } catch (...) {
+            return 0.0;
+        }
+    }
 
-// Convierte un carácter a minúscula
-inline char toLower(char c) {
-    return std::tolower(static_cast<unsigned char>(c));
+    inline char toLower(char c) {
+        return (c >= 'A' && c <= 'Z') ? c + 32 : c;
+    }
 }
-
-} // namespace utils
 
 #endif // UTILS_H

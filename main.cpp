@@ -37,7 +37,7 @@ void editCell(Spreadsheet& sheet) {
 }
 
 int main() {
-    int rows = 27, cols = 10; // Número inicial de filas y columnas
+    int rows = 26, cols = 7; // Número inicial de filas y columnas
     Spreadsheet sheet(rows, cols);
 
     bool running = true;

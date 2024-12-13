@@ -19,3 +19,4 @@ double Cell::getNumericValue() const {
         return 0.0; // Si no es un número, retorna 0
     }
 }
+
