@@ -211,7 +211,7 @@ void Spreadsheet::display() const {
     int rows = grid.size();
 
     // Mostrar encabezados de columnas
-    std::cout << std::setw(6) << " "; // Espacio para etiquetas de filas
+    std::cout << std::setw(9) << " "; // Espacio para etiquetas de filas
     for (int col = 1; col <= cols; ++col) {
         std::cout << std::setw(12) << col << " | ";  // Ajuste de espacio para mejor alineación
     }
