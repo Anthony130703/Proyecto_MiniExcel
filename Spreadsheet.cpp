@@ -218,7 +218,7 @@ void Spreadsheet::display() const {
     std::cout << "\n";
 
     // Mostrar separador
-    std::cout << std::string(6 + (cols * 14), '-') << "\n";  // Ajustar longitud del separador
+    std::cout << std::string(6 + (cols * 15), '-') << "\n";  // Ajustar longitud del separador
 
     // Mostrar filas con etiquetas
     for (int row = 0; row < rows; ++row) {
@@ -241,6 +241,6 @@ void Spreadsheet::display() const {
         std::cout << "\n";
 
         // Imprimir separador después de cada fila
-        std::cout << std::string(6 + (cols * 14), '-') << "\n";  // Ajustar longitud del separador
+        std::cout << std::string(6 + (cols * 15), '-') << "\n";  // Ajustar longitud del separador
     }
 }
